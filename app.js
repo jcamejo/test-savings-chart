@@ -131,6 +131,7 @@ function createChart(record, container) {
 
     const chartCard = document.createElement('div');
     chartCard.className = 'chart-card';
+    chartCard.setAttribute('data-aggregation-key', aggregationKey.toLowerCase());
 
     const title = document.createElement('div');
     title.className = 'chart-title';
@@ -231,6 +232,11 @@ function processCSV(text) {
             createChart(record, container);
         });
 
+        // Show search container and update result count
+        const searchContainer = document.getElementById('search-container');
+        searchContainer.style.display = 'block';
+        updateResultCount();
+
         console.log(`Created ${records.length} charts`);
     } catch (error) {
         loadingEl.textContent = `Error: ${error.message}`;
@@ -239,10 +245,47 @@ function processCSV(text) {
     }
 }
 
+// Filter charts based on search term
+function filterCharts(searchTerm) {
+    const chartCards = document.querySelectorAll('.chart-card');
+    const term = searchTerm.toLowerCase().trim();
+    let visibleCount = 0;
+
+    chartCards.forEach(card => {
+        const aggregationKey = card.getAttribute('data-aggregation-key');
+        if (term === '' || aggregationKey.includes(term)) {
+            card.style.display = 'block';
+            visibleCount++;
+        } else {
+            card.style.display = 'none';
+        }
+    });
+
+    updateResultCount(visibleCount);
+}
+
+// Update result count display
+function updateResultCount(visibleCount = null) {
+    const resultCountEl = document.getElementById('result-count');
+    const chartCards = document.querySelectorAll('.chart-card');
+    const totalCount = chartCards.length;
+
+    if (visibleCount === null) {
+        visibleCount = totalCount;
+    }
+
+    if (visibleCount === totalCount) {
+        resultCountEl.textContent = `Showing all ${totalCount} charts`;
+    } else {
+        resultCountEl.textContent = `Showing ${visibleCount} of ${totalCount} charts`;
+    }
+}
+
 // Initialize when page loads
 document.addEventListener('DOMContentLoaded', function () {
     const fileInput = document.getElementById('csv-file');
     const loadBtn = document.getElementById('load-btn');
+    const searchInput = document.getElementById('search-input');
 
     // Try to load data.csv if available (when served via HTTP)
     fetch('data.csv')
@@ -277,6 +320,19 @@ document.addEventListener('DOMContentLoaded', function () {
     fileInput.addEventListener('change', function () {
         if (fileInput.files[0]) {
             loadBtn.click();
+        }
+    });
+
+    // Handle search input
+    searchInput.addEventListener('input', function (e) {
+        filterCharts(e.target.value);
+    });
+
+    // Clear search on Escape key
+    searchInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+            e.target.value = '';
+            filterCharts('');
         }
     });
 });
