@@ -22,7 +22,10 @@
             <input type="text" id="search-input" class="search-input" placeholder="e.g., mazda_3, chery_tiggo-8..." />
             <span id="result-count" class="result-count"></span>
         </div>
-        <div id="loading" style="display: none;">Loading data...</div>
+        <div id="loading" style="display: none;">
+            <div class="spinner"></div>
+            <div class="loading-message">Loading data...</div>
+        </div>
         <div id="charts-container" class="trellis-grid"></div>
     </div>
     <script src="app.js"></script>

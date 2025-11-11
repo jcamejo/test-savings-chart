@@ -211,6 +211,48 @@ function createChart(record, container) {
     });
 }
 
+// Create charts asynchronously in batches to prevent UI blocking
+function createChartsAsync(records, container, loadingEl, loadingMessage) {
+    const BATCH_SIZE = 10; // Create 10 charts at a time
+    let currentIndex = 0;
+
+    function createBatch() {
+        const endIndex = Math.min(currentIndex + BATCH_SIZE, records.length);
+
+        // Create charts in this batch
+        for (let i = currentIndex; i < endIndex; i++) {
+            createChart(records[i], container);
+        }
+
+        currentIndex = endIndex;
+
+        // Update progress message
+        if (loadingMessage) {
+            loadingMessage.textContent = `Creating charts... ${currentIndex} of ${records.length}`;
+        }
+
+        // If there are more charts to create, continue in next frame
+        if (currentIndex < records.length) {
+            setTimeout(createBatch, 0);
+        } else {
+            // All charts created, hide loading and show search
+            loadingEl.style.display = 'none';
+
+            const searchContainer = document.getElementById('search-container');
+            searchContainer.style.display = 'block';
+            updateResultCount();
+
+            console.log(`Created ${records.length} charts`);
+        }
+    }
+
+    // Start creating charts
+    if (loadingMessage) {
+        loadingMessage.textContent = `Creating ${records.length} charts...`;
+    }
+    createBatch();
+}
+
 // Process CSV and create charts
 function processCSV(text) {
     const loadingEl = document.getElementById('loading');
@@ -219,28 +261,23 @@ function processCSV(text) {
     try {
         // Clear previous charts
         container.innerHTML = '';
-        loadingEl.style.display = 'block';
-        loadingEl.textContent = 'Parsing CSV data...';
-        loadingEl.style.color = '#666';
+        loadingEl.style.display = 'flex';
+        const loadingMessage = loadingEl.querySelector('.loading-message');
+        if (loadingMessage) {
+            loadingMessage.textContent = 'Parsing CSV data...';
+            loadingMessage.style.color = '#666';
+        }
 
         const records = parseCSV(text);
 
-        loadingEl.style.display = 'none';
-
-        // Create charts for each record
-        records.forEach((record, index) => {
-            createChart(record, container);
-        });
-
-        // Show search container and update result count
-        const searchContainer = document.getElementById('search-container');
-        searchContainer.style.display = 'block';
-        updateResultCount();
-
-        console.log(`Created ${records.length} charts`);
+        // Create charts asynchronously to prevent UI blocking
+        createChartsAsync(records, container, loadingEl, loadingMessage);
     } catch (error) {
-        loadingEl.textContent = `Error: ${error.message}`;
-        loadingEl.style.color = 'red';
+        const loadingMessage = loadingEl.querySelector('.loading-message');
+        if (loadingMessage) {
+            loadingMessage.textContent = `Error: ${error.message}`;
+            loadingMessage.style.color = 'red';
+        }
         console.error('Processing error:', error);
     }
 }
